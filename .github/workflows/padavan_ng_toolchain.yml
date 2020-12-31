@@ -1,0 +1,53 @@
+# by: TurBoTse
+
+name: Padavan NG toolchain
+
+on: 
+#  release:
+#    types: [published]
+#  push:
+#    tags:
+#    - 'v*'
+  workflow_dispatch:
+  watch:
+    types: [started]
+env:
+  src_dir: /opt/rt-n56u
+  build_dir: /opt/rt-n56u/toolchain
+  toolchain_dir: /opt/rt-n56u/toolchain/out
+  src_git: https://github.com/TurBoTse/padavan-ng.git
+jobs:
+  build:
+    name: Build Padavan NG toolchain
+    runs-on: ubuntu-20.04
+    if: github.event.repository.owner.id == github.event.sender.id
+    steps:
+      - name: Prepare environment
+        run: |
+          sudo apt update
+          sudo apt install libtool-bin gperf python-docutils autopoint gettext help2man
+      - name: Clone source code
+        run: |
+          git clone --depth=1 $src_git $src_dir
+      - name: Build toolchain
+        run: |
+          cd $build_dir
+          if [ ! -f build_toolchain.sh ] ; then echo "build_toolchain.sh not found "; exit 1; fi
+          ./clean_sources.sh
+          ./build_toolchain.sh
+      - name: Compressed toolchain
+        run: |
+          cd $toolchain_dir
+          tar -caf mipsel-linux-uclibc-ng.tar.xz *
+          cd $build_dir
+          tar -caf padavan_ng_toolchain.tar.xz *
+      - name : Upload toolchain to Artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: mipsel-linux-uclibc-ng.tar.xz
+          path: ${{ env.toolchain_dir }}/mipsel-linux-uclibc-ng.tar.xz
+      - name : Upload padavan toolchain
+        uses: actions/upload-artifact@main
+        with:
+          name: Padavan-NG-toolchain.tar.xz
+          path: ${{ env.build_dir }}/padavan_ng_toolchain.tar.xz
